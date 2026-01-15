@@ -6,7 +6,7 @@
 
 using namespace std;
 
-int main() {
+int main(){
     TransportCatalogue catalogue;
 
     int base_request_count;
@@ -14,19 +14,9 @@ int main() {
 
     {
         InputReader reader;
-        for (int i = 0; i < base_request_count; ++i) {
-            string line;
-            getline(cin, line);
-            reader.ParseLine(line);
-        }
+        reader.ReadRequests(cin, base_request_count);
         reader.ApplyCommands(catalogue);
     }
 
-    int stat_request_count;
-    cin >> stat_request_count >> ws;
-    for (int i = 0; i < stat_request_count; ++i) {
-        string line;
-        getline(cin, line);
-        detail::ParseAndPrintStat(catalogue, line, cout);
-    }
+    detail::ProcessStatRequests(cin, catalogue, cout);
 }

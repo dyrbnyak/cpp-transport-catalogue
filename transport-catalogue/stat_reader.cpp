@@ -10,52 +10,17 @@ using namespace std;
 
 
 void detail::ParseAndPrintStat(const TransportCatalogue& transport_catalogue, string_view request, ostream& output) {
+    TypeRequestAndDescription type_request_and_type_request = SeparateRequest(request);
 
-    pair<string_view, string_view> id_and_type_request = SeparateRequest(request);
-
-
-    if(id_and_type_request.first == "Bus"){
-        if(transport_catalogue.FindBus(id_and_type_request.second)){
-            BusInfo bus_info = transport_catalogue.GetInfo(id_and_type_request.second);
-            output << "Bus " << id_and_type_request.second
-                   << ": "
-                   << bus_info.stops_on_rote << " stops on route, "
-                   << bus_info.unique_stops << " unique stops, "
-                   << bus_info.route_length << " route length"
-                   << endl;
-
-        } else{
-            output << "Bus " << id_and_type_request.second << ": not found" << endl;
-
-        }
-
-    } else if(id_and_type_request.first == "Stop"){
-        if(transport_catalogue.FindStop(id_and_type_request.second)){
-            set<string> name_bus = transport_catalogue.GetStopsByBus(id_and_type_request.second);
-
-            if(name_bus.empty()){
-                output << "Stop " << id_and_type_request.second << ": no buses" << endl;
-                return;
-            } else {
-                output << "Stop " << id_and_type_request.second << ": buses";
-                for(const auto& bus : name_bus){
-                    output << " " << bus;
-                }
-                output << endl;
-            }
-
-        } else{
-            output << "Stop " << id_and_type_request.second << ": not found" << endl;
-
-        }
+    if(type_request_and_type_request.type_request == "Bus"){
+        PrintBusInfo(output, transport_catalogue, type_request_and_type_request);
+    } else if(type_request_and_type_request.type_request == "Stop"){
+        PrintStopInfo(output, transport_catalogue, type_request_and_type_request);
     }
-
-
 }
 
 
-
-pair<string_view, string_view> detail::SeparateRequest(string_view request){
+detail::TypeRequestAndDescription detail::SeparateRequest(string_view request){
     //Удаляем пробелы в начале и конце
     size_t start = request.find_first_not_of(" ");
     size_t end = request.find_last_not_of(" ");
@@ -75,4 +40,53 @@ pair<string_view, string_view> detail::SeparateRequest(string_view request){
     string_view description = trim_str.substr(start, end - start + 1);
 
     return {type_request, description};
+}
+
+void detail::ProcessStatRequests(istream& input, const TransportCatalogue& catalogue, ostream& output){
+    int stat_request_count;
+    cin >> stat_request_count >> ws;
+
+    for (int i = 0; i < stat_request_count; ++i) {
+        string line;
+        getline(input, line);
+        detail::ParseAndPrintStat(catalogue, line, output);
+    }
+}
+
+void detail::PrintBusInfo(ostream& output, const TransportCatalogue& transport_catalogue, const TypeRequestAndDescription& type_request_and_type_request){
+    if(transport_catalogue.HasBus(type_request_and_type_request.description)){
+        BusInfo bus_info = transport_catalogue.GetInfo(type_request_and_type_request.description);
+        output << "Bus " << type_request_and_type_request.description
+               << ": "
+               << bus_info.stops_on_rote << " stops on route, "
+               << bus_info.unique_stops << " unique stops, "
+               << bus_info.route_length << " route length"
+               << endl;
+
+    } else{
+        output << "Bus " << type_request_and_type_request.description << ": not found" << endl;
+
+    }
+
+}
+
+void detail::PrintStopInfo(ostream &output, const TransportCatalogue &transport_catalogue, const TypeRequestAndDescription &type_request_and_type_request){
+    if(transport_catalogue.HasStop(type_request_and_type_request.description).has_value()){
+        set<string> name_bus = transport_catalogue.GetBusByStop(type_request_and_type_request.description);
+
+        if(name_bus.empty()){
+            output << "Stop " << type_request_and_type_request.description << ": no buses" << endl;
+            return;
+        } else {
+            output << "Stop " << type_request_and_type_request.description << ": buses";
+            for(const auto& bus : name_bus){
+                output << " " << bus;
+            }
+            output << endl;
+        }
+
+    } else{
+        output << "Stop " << type_request_and_type_request.description << ": not found" << endl;
+
+    }
 }

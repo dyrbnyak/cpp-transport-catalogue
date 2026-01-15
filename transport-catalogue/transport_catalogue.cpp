@@ -10,15 +10,14 @@ void TransportCatalogue::AddStop(const string& new_name, const Coordinates& new_
     Stop new_stop{new_name, new_coordinates};
     stops_.push_back(std::move(new_stop));
     index_stops_[stops_.back().name] = &stops_.back();
+    stops_on_route[stops_.back().name] = {};
 }
 
-bool TransportCatalogue::FindStop(const string_view &name_stop) const{
-    return index_stops_.count(name_stop) > 0 ? true : false;
+optional<Stop *> TransportCatalogue::HasStop(string_view name_stop) const{
+    auto it = index_stops_.find(name_stop);
+    return it != index_stops_.end() ? optional<Stop*>(it->second) : nullopt;
 }
 
-const unordered_map<string_view, Stop *> &TransportCatalogue::GetStops() const{
-    return index_stops_;
-}
 
 
 
@@ -31,11 +30,15 @@ void TransportCatalogue::AddBus(const string& name, const vector<string_view>& r
 
     Stops stops;
     for (const auto& stop_name : route) {
-        if (FindStop(stop_name)) {
+        if (HasStop(stop_name)) {
             stops.push_back(index_stops_[stop_name]);
+        }
+    }
 
-        } else {
-            cerr << "Stop not found: " << stop_name << endl;
+    //Заполняем список: остановка - автобусы, которые через неё ходят.
+    for(const auto& stop : stops){
+        if(stops_on_route.find(stop -> name) != stops_on_route.end()){
+            stops_on_route[stop -> name].insert(name);
         }
     }
 
@@ -43,30 +46,14 @@ void TransportCatalogue::AddBus(const string& name, const vector<string_view>& r
     index_bus_[bus_.back().name] = &bus_.back();
 }
 
-bool TransportCatalogue::FindBus(const string_view &name_bus) const{
-    return index_bus_.count(name_bus) > 0 ? true : false;
+optional<Bus*> TransportCatalogue::HasBus(string_view name_bus) const{
+    auto it = index_bus_.find(name_bus);
+    return it != index_bus_.end() ? optional<Bus*>(it->second) : nullopt;
 }
 
-const set<string> TransportCatalogue::GetStopsByBus(const string_view &name_bus) const{
-    set<string> result;
-
-    for(const auto& [name, bus] : index_bus_){
-        for(const auto& stop_ptr : bus->stops){
-            if(stop_ptr->name == name_bus){
-                result.insert(bus->name);
-                break;
-            }
-        }
-    }
-
-    return result;
+const set<string>& TransportCatalogue::GetBusByStop(string_view name_stop) const{
+    return stops_on_route.at(name_stop);
 }
-
-
-const unordered_map<string_view, Bus *> &TransportCatalogue::GetBus() const{
-    return index_bus_;
-}
-
 
 
 double TransportCatalogue::ComputeDistanceRote(const Bus& bus) const{
@@ -79,7 +66,7 @@ double TransportCatalogue::ComputeDistanceRote(const Bus& bus) const{
     return distance;
 }
 
-BusInfo TransportCatalogue::GetInfo(const string_view &bus) const{
+BusInfo TransportCatalogue::GetInfo(string_view bus) const{
     BusInfo result{};
 
     result.route_length = ComputeDistanceRote(*index_bus_.at(bus));

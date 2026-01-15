@@ -33,6 +33,10 @@ public:
      */
     void ApplyCommands(TransportCatalogue& catalogue) const;
 
+    /*
+     * Читает запросы на создание бд
+     */
+    void ReadRequests(std::istream &input, size_t base_request_count);
 private:
     std::vector<CommandDescription> commands_;
 };

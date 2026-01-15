@@ -5,19 +5,22 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <optional>
 
 #include "geo.h"
 
+using std::string_view;
+using std::string;
 
 struct Stop{
-    std::string name;
+    string name;
     Coordinates coordinates;
 };
 
 using Stops = std::vector<Stop*>;
 
 struct Bus{
-    std::string name;
+    string name;
     Stops stops;
 };
 
@@ -32,25 +35,23 @@ struct BusInfo{
 
 class TransportCatalogue {
 public:
-    void AddStop(const std::string& new_name, const Coordinates& new_coordinates);
-    bool FindStop(const std::string_view& name_stop) const;
-    const std::unordered_map<std::string_view, Stop*>& GetStops() const;
+    void AddStop(const string& new_name, const Coordinates& new_coordinates);
+    std::optional<Stop*> HasStop(string_view name_stop) const;
 
 
-    void AddBus(const std::string& name, const std::vector<std::string_view>& route);
-    bool FindBus(const std::string_view& name_bus) const;
-    const std::set<std::string> GetStopsByBus(const std::string_view& name_bus) const;
-    const std::unordered_map<std::string_view, Bus*>& GetBus() const;
-
-    double ComputeDistanceRote(const Bus& bus) const;
-
-    BusInfo GetInfo(const std::string_view& bus) const;
-
+    void AddBus(const string& name, const std::vector<string_view>& route);
+    std::optional<Bus*> HasBus(string_view name_bus) const;
+    const std::set<string>& GetBusByStop(string_view name_stop) const;
+    BusInfo GetInfo(string_view bus) const;
 
 private:
     std::deque<Stop> stops_;
-    std::unordered_map<std::string_view, Stop*> index_stops_;
+    std::unordered_map<string_view, Stop*> index_stops_;
 
     std::deque<Bus> bus_;
-    std::unordered_map<std::string_view, Bus*> index_bus_;
+    std::unordered_map<string_view, Bus*> index_bus_;
+
+    std::unordered_map<string_view, std::set<string>> stops_on_route;
+
+    double ComputeDistanceRote(const Bus& bus) const;
 };

@@ -127,3 +127,13 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
         }
     }
 }
+
+
+void InputReader::ReadRequests(istream& input, size_t base_request_count) {
+    for (size_t i = 0; i < base_request_count; ++i) {
+        string line;
+        getline(input, line);
+        ParseLine(line);
+    }
+}
+
