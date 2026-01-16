@@ -42,7 +42,7 @@ public:
     void AddBus(const string& name, const std::vector<string_view>& route);
     const Bus* FindBus(string_view name_bus) const;
     const std::set<string>& GetBusByStop(string_view name_stop) const;
-    BusInfo GetInfo(string_view bus) const;
+    BusInfo GetInfo(const Bus* bus) const;
 
 private:
     std::deque<Stop> stops_;

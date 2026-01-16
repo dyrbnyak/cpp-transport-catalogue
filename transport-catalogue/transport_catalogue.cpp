@@ -72,12 +72,12 @@ double TransportCatalogue::ComputeDistanceRote(const Bus& bus) const{
     return distance;
 }
 
-BusInfo TransportCatalogue::GetInfo(string_view bus) const{
+BusInfo TransportCatalogue::GetInfo(const Bus* bus) const{
     BusInfo result{};
 
-    result.route_length = ComputeDistanceRote(*index_bus_.at(bus));
-    result.stops_on_rote = index_bus_.at(bus)->stops.size();
-    result.unique_stops = unordered_set<Stop*>(index_bus_.at(bus)->stops.begin(), index_bus_.at(bus)->stops.end()).size();
+    result.route_length = ComputeDistanceRote(*bus);
+    result.stops_on_rote = bus->stops.size();
+    result.unique_stops = unordered_set<Stop*>(bus->stops.begin(), bus->stops.end()).size();
 
     return result;
 }
