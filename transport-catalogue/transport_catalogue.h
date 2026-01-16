@@ -36,11 +36,11 @@ struct BusInfo{
 class TransportCatalogue {
 public:
     void AddStop(const string& new_name, const Coordinates& new_coordinates);
-    std::optional<Stop*> HasStop(string_view name_stop) const;
+    const Stop* FindStop(string_view name_stop) const;
 
 
     void AddBus(const string& name, const std::vector<string_view>& route);
-    std::optional<Bus*> HasBus(string_view name_bus) const;
+    const Bus* FindBus(string_view name_bus) const;
     const std::set<string>& GetBusByStop(string_view name_stop) const;
     BusInfo GetInfo(string_view bus) const;
 

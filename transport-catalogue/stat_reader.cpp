@@ -54,7 +54,7 @@ void detail::ProcessStatRequests(istream& input, const TransportCatalogue& catal
 }
 
 void detail::PrintBusInfo(ostream& output, const TransportCatalogue& transport_catalogue, const TypeRequestAndDescription& type_request_and_type_request){
-    if(transport_catalogue.HasBus(type_request_and_type_request.description)){
+    if(transport_catalogue.FindBus(type_request_and_type_request.description)){
         BusInfo bus_info = transport_catalogue.GetInfo(type_request_and_type_request.description);
         output << "Bus " << type_request_and_type_request.description
                << ": "
@@ -71,7 +71,7 @@ void detail::PrintBusInfo(ostream& output, const TransportCatalogue& transport_c
 }
 
 void detail::PrintStopInfo(ostream &output, const TransportCatalogue &transport_catalogue, const TypeRequestAndDescription &type_request_and_type_request){
-    if(transport_catalogue.HasStop(type_request_and_type_request.description).has_value()){
+    if(transport_catalogue.FindStop(type_request_and_type_request.description)){
         set<string> name_bus = transport_catalogue.GetBusByStop(type_request_and_type_request.description);
 
         if(name_bus.empty()){

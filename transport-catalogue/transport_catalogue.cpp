@@ -13,9 +13,9 @@ void TransportCatalogue::AddStop(const string& new_name, const Coordinates& new_
     stops_on_route[stops_.back().name] = {};
 }
 
-optional<Stop *> TransportCatalogue::HasStop(string_view name_stop) const{
+const Stop* TransportCatalogue::FindStop(string_view name_stop) const{
     auto it = index_stops_.find(name_stop);
-    return it != index_stops_.end() ? optional<Stop*>(it->second) : nullopt;
+    return it != index_stops_.end() ? it->second : nullptr;
 }
 
 
@@ -30,7 +30,7 @@ void TransportCatalogue::AddBus(const string& name, const vector<string_view>& r
 
     Stops stops;
     for (const auto& stop_name : route) {
-        if (HasStop(stop_name)) {
+        if (FindStop(stop_name)) {
             stops.push_back(index_stops_[stop_name]);
         }
     }
@@ -46,13 +46,19 @@ void TransportCatalogue::AddBus(const string& name, const vector<string_view>& r
     index_bus_[bus_.back().name] = &bus_.back();
 }
 
-optional<Bus*> TransportCatalogue::HasBus(string_view name_bus) const{
+const Bus* TransportCatalogue::FindBus(string_view name_bus) const{
     auto it = index_bus_.find(name_bus);
-    return it != index_bus_.end() ? optional<Bus*>(it->second) : nullopt;
+    return it != index_bus_.end() ? it->second : nullptr;
 }
 
 const set<string>& TransportCatalogue::GetBusByStop(string_view name_stop) const{
-    return stops_on_route.at(name_stop);
+    if(stops_on_route.find(name_stop) != stops_on_route.end()){
+        return stops_on_route.at(name_stop);
+    }
+
+    static set<string> empty{};
+    return empty;
+
 }
 
 
