@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cmath>
+#include <string>
+#include <unordered_map>
 
 struct Coordinates {
     double lat;

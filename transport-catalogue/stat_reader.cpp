@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <set>
-#include <algorithm>
+#include <iomanip>
 
 #include "stat_reader.h"
 
@@ -10,7 +10,7 @@ using namespace std;
 
 
 void detail::ParseAndPrintStat(const TransportCatalogue& transport_catalogue, string_view request, ostream& output) {
-    TypeRequestAndDescription type_request_and_type_request = SeparateRequest(request);
+    const TypeRequestAndDescription type_request_and_type_request = SeparateRequest(request);
 
     if(type_request_and_type_request.type_request == "Bus"){
         PrintBusInfo(output, transport_catalogue, type_request_and_type_request);
@@ -54,39 +54,41 @@ void detail::ProcessStatRequests(istream& input, const TransportCatalogue& catal
 }
 
 void detail::PrintBusInfo(ostream& output, const TransportCatalogue& transport_catalogue, const TypeRequestAndDescription& type_request_and_type_request){
-    if(transport_catalogue.FindBus(type_request_and_type_request.description)){
+    if(transport_catalogue.FindBus(type_request_and_type_request.description) != nullptr){
         BusInfo bus_info = transport_catalogue.GetInfo(transport_catalogue.FindBus(type_request_and_type_request.description));
         output << "Bus " << type_request_and_type_request.description
                << ": "
                << bus_info.stops_on_rote << " stops on route, "
                << bus_info.unique_stops << " unique stops, "
-               << bus_info.route_length << " route length"
-               << endl;
+               << bus_info.route_length << " route length, "
+               << setprecision(6) << bus_info.curvature << " curvature"
+               << '\n';
 
     } else{
-        output << "Bus " << type_request_and_type_request.description << ": not found" << endl;
+        output << "Bus " << type_request_and_type_request.description << ": not found" << '\n';
 
     }
 
 }
 
-void detail::PrintStopInfo(ostream &output, const TransportCatalogue &transport_catalogue, const TypeRequestAndDescription &type_request_and_type_request){
-    if(transport_catalogue.FindStop(type_request_and_type_request.description)){
-        set<string> name_bus = transport_catalogue.GetBusByStop(type_request_and_type_request.description);
+void detail::PrintStopInfo(ostream &output,
+                           const TransportCatalogue &transport_catalogue,
+                           const TypeRequestAndDescription &request) {
+    const string_view stop_name = request.description;
 
-        if(name_bus.empty()){
-            output << "Stop " << type_request_and_type_request.description << ": no buses" << endl;
-            return;
+    if (const auto* stop = transport_catalogue.FindStop(stop_name); stop != nullptr) {
+        const set<string> buses = transport_catalogue.GetBusByStop(stop_name);
+
+        if (buses.empty()) {
+            output << "Stop " << stop_name << ": no buses\n";
         } else {
-            output << "Stop " << type_request_and_type_request.description << ": buses";
-            for(const auto& bus : name_bus){
-                output << " " << bus;
+            output << "Stop " << stop_name << ": buses";
+            for (const auto& bus : buses) {
+                output << ' ' << bus;
             }
-            output << endl;
+            output << '\n';
         }
-
-    } else{
-        output << "Stop " << type_request_and_type_request.description << ": not found" << endl;
-
+    } else {
+        output << "Stop " << stop_name << ": not found\n";
     }
 }
