@@ -18,19 +18,28 @@ const Stop* TransportCatalogue::FindStop(string_view name_stop) const{
 }
 
 
-void TransportCatalogue::AddDistance(const string& name, const std::vector<std::pair<string, size_t>>& distance){
-    for(const auto& pair : distance){
-        distances_.insert({{name, pair.first}, pair.second});
+void TransportCatalogue::AddDistance(string_view from, string_view to, double distance){
+    if(FindStop(from) != nullptr && FindStop(to) != nullptr){
+        distances_[std::make_pair(std::string(from), std::string(to))] = distance;
     }
 }
 
 
-size_t TransportCatalogue::GetDistance(const string& from, const string& to) const{
-    if(distances_.find({from, to}) != distances_.end()){
-        return distances_.at({from, to});
-    } else{
-        return distances_.at({to, from});
+double TransportCatalogue::GetDistance(const string& from, const string& to) const{
+    // Ищем прямое направление
+    auto it = distances_.find({from, to});
+    if (it != distances_.end()) {
+        return it->second;  // возвращаем значение через итератор
     }
+
+    // Ищем обратное направление
+    it = distances_.find({to, from});
+    if (it != distances_.end()) {
+        return it->second;
+    }
+
+    // Если не нашли - возвращаем 0.0
+    return 0.0;
 }
 
 
@@ -74,8 +83,8 @@ const set<string>& TransportCatalogue::GetBusByStop(string_view name_stop) const
 }
 
 
-size_t TransportCatalogue::ComputeFactDistanceRote(const Bus& bus) const{
-    size_t distance = 0;
+double TransportCatalogue::ComputeFactDistanceRote(const Bus& bus) const{
+    double distance = 0;
 
     if (bus.stops.size() < 2) {
         return 0;

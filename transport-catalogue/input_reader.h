@@ -21,6 +21,13 @@ struct CommandDescription {
     std::string description;  // Параметры команды
 };
 
+struct Distance {
+    //Пара в формате <Остановка "Б" и расстояние до неё>
+    std::string name_stop_from;
+    std::string name_stop_to;
+    double distance;
+};
+
 class InputReader {
 public:
     /*

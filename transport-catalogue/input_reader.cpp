@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cassert>
 #include <iterator>
+#include <unordered_set>
 
 using namespace std;
 
@@ -38,19 +39,19 @@ Coordinates ParseCoordinates(string_view str) {
  * Такой подход обосоновывается тем, что в метод AddDistance будет передаваться id(Остановка относительно которой указано расстояние)
  * И из вектора пар и id будет собрано значение для словаря distance_;
  */
-vector<pair<string, size_t>> ParseDistance(string_view str) {
-    vector<pair<string, size_t>> result{};
+vector<Distance> ParseDistance(const string& from ,string_view str) {
+    vector<Distance> result{};
 
     // Получаем вектор формата {"9900m to Rasskazovka", "100m to Marushkino"}
     auto split_str = Split(str, ',');
 
-
     for(const string_view& info : split_str){
         auto first_space_pos = info.find(' ');
-        size_t distance = std::stoi(string(info.substr(0, first_space_pos - 1)));
+        double distance = std::stod(string(info.substr(0, first_space_pos - 1)));
+
         auto second_space_pos = info.find(' ', first_space_pos + 1);
-        string stop = string(info.substr(second_space_pos + 1));
-        result.push_back({stop, distance});
+        string to = string(info.substr(second_space_pos + 1));
+        result.push_back({from, to, distance});
     }
 
     return result;
@@ -58,16 +59,26 @@ vector<pair<string, size_t>> ParseDistance(string_view str) {
 
 /**
  * Парсит строку вида "55.595884, 37.209755, 9900m to Rasskazovka, 100m to Marushkino"
- * и возвращает пару строк, first -> (широта, долгота), second -> (дистанции до точки)
+ * и возвращает пару строк, "55.595884, 37.209755"
  */
-pair<string_view, string_view> ParseDiscription(string_view str) {
-    //Находим вторую запятую, берем строку до нее и после неё
-    //Это и будут наши first и second
+string_view ParseCoordinatePart(string_view str) {
+    //Находим вторую запятую, берем строку до нее
     auto comma_1 = str.find(',');
     auto comma_2 = str.find(',', comma_1 + 1);
 
-    return {Trim(str.substr(0,comma_2)),
-            Trim(str.substr(comma_2 + 1))};
+    return Trim(str.substr(0,comma_2));
+}
+
+/**
+ * Парсит строку вида "55.595884, 37.209755, 9900m to Rasskazovka, 100m to Marushkino"
+ * и возвращает пару строк, "9900m to Rasskazovka, 100m to Marushkino"
+ */
+string_view ParseDistancePart(string_view str) {
+    //Находим вторую запятую, берем строку после неё
+    auto comma_1 = str.find(',');
+    auto comma_2 = str.find(',', comma_1 + 1);
+
+    return Trim(str.substr(comma_2 + 1));
 }
 
 /**
@@ -149,29 +160,40 @@ void InputReader::ParseLine(string_view line) {
 
 void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) const {
     /*
-     * Сначала считываем остановки, затем маршруты.
+     * Сначала считываем остановки, дистанции, затем маршруты.
      * В методе добавления маршрута заложена проверка, существует ли остановка,
      * переданная в параметрах, для этого должны быть заранее считаны все остановки.
-     */
+    */
 
-    //Идея для увелечения скорости работы, завести числовой вектор, в котором сохранить значение индексов остановок при первом проходе.
-    //Затем при добавлении маршрутов не проверять индексы, под которыми находятся остановки
+    //Здесь хранятся инедексы остановок. Вставка и поиск O(1) в среднем, при повторных обходах запросов выше скорость, чем сравнивать строки
+    unordered_set<size_t> index_stop{};
+    vector<Distance> distances{};
+    distances.reserve(commands_.size());
 
-    //Идея: Написать отдельную функцию, которая будет разбивать описание на часть, где координаты и где расстояния,
-    //затем передавть в соответствующие парсеры.
+    //Добавление остановок
+    for(size_t i = 0; i < commands_.size(); ++i){
+        if(commands_[i].command == "Stop"){
+            index_stop.insert(i);
+            string_view coordinates_part = ParseCoordinatePart(commands_[i].description);
+            string_view distance_part = ParseDistancePart(commands_[i].description);
 
-    for(const CommandDescription&  command_stop : commands_){
-        if(command_stop.command == "Stop"){
-            pair<string_view, string_view> pars_discriprion = ParseDiscription(command_stop.description);
-            //First -> координаты, Second - расстояния
-            catalogue.AddStop(command_stop.id, ParseCoordinates(pars_discriprion.first));
-            catalogue.AddDistance(command_stop.id, ParseDistance(pars_discriprion.second));
+            //За один проход забираю все дистанции
+            for(const Distance& dist : ParseDistance(commands_[i].id, distance_part)){
+                distances.push_back(std::move(dist));
+            }
+            catalogue.AddStop(commands_[i].id, ParseCoordinates(coordinates_part));
         }
     }
 
-    for(const CommandDescription&  command_bus : commands_){
-        if(command_bus.command == "Bus"){
-            catalogue.AddBus(command_bus.id, ParseRoute(command_bus.description));
+    //Добавление расстояний
+    for(const auto& dist : distances){
+        catalogue.AddDistance(dist.name_stop_from, dist.name_stop_to, dist.distance);
+    }
+
+    //Добавление маршрутов
+    for(size_t i = 0; i < commands_.size(); ++i){
+        if(index_stop.find(i) == index_stop.end()){
+            catalogue.AddBus(commands_[i].id, ParseRoute(commands_[i].description));
         }
     }
 }
