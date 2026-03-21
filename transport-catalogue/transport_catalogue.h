@@ -2,32 +2,13 @@
 
 #include <deque>
 #include <unordered_map>
-#include <vector>
+#include <unordered_set>
 #include <string>
 #include <set>
 #include <optional>
 
-#include "geo.h"
+#include "domain.h"
 
-
-struct Stop{
-    std::string name;
-    Coordinates coordinates;
-};
-
-using Stops = std::vector<Stop*>;
-
-struct Bus{
-    std::string name;
-    Stops stops;
-};
-
-struct BusInfo{
-    size_t stops_on_rote;
-    size_t unique_stops;
-    size_t route_length;
-    double curvature;
-};
 
 // Хешер для пары указателей на остановки
 struct PairHasher {
@@ -42,39 +23,44 @@ struct PairHasher {
 };
 
 
-
 class TransportCatalogue {
 public:
     void AddStop(const std::string& new_name, const Coordinates& new_coordinates);
-    const Stop* FindStop(std::string_view name_stop) const;
+    StopPtr FindStop(std::string_view name_stop) const;
 
-    void AddDistance(std::string_view from, std::string_view to, double distance);
+    void AddDistance(const std::string& from, const std::string& to, double distance);
 
-    double ComputeFactDistanceRote(const Bus& bus) const;
-    double ComputeGeographicDistanceRote(const Bus& bus) const;
+    double ComputeFactDistanceRote(const Stops& stops)const;
+    double ComputeGeographicDistanceRote(const Stops& stops) const;
 
-    void AddBus(const std::string& name, const std::vector<std::string_view>& route);
-    const Bus* FindBus(std::string_view name_bus) const;
-    const std::set<std::string>& GetBusByStop(std::string_view name_stop) const;
+    void AddBus(const std::string& name, const std::vector<StopPtr>& route, bool is_roundtrip);
+    BusPtr FindBus(std::string_view name_bus) const;
+
+    //Возвращает все маршруты, которые проходят через переданную остановку
+    const std::unordered_set<BusPtr>& GetBusByStop(StopPtr stop) const;
+
+    std::vector<StopPtr> GetStop() const;
+    std::vector<BusPtr> GetBus() const;
 
 
-    BusInfo GetInfo(const Bus* bus) const;
-private:
+
     std::deque<Stop> stops_;
-    std::unordered_map<std::string_view, Stop*> index_stops_;
+    std::unordered_map<std::string_view, StopPtr> index_stops_;
 
     std::deque<Bus> bus_;
-    std::unordered_map<std::string_view, Bus*> index_bus_;
+    std::unordered_map<std::string_view, BusPtr> index_bus_;
 
-    std::unordered_map<std::string_view, std::set<std::string>> stops_on_route_;
+    //Храним указатели на маршруты, которые проходят через остановку. {Остановка, указатель{множество уникальных маршрутов}}
+    std::unordered_map<std::string_view, std::unordered_set<BusPtr>> stops_on_route_;
 
     //Здесь хранится значение в формате <остановка откуда, остановка куда> = расстояние
 
     //Почему используем pair<std::string, std::string>, а не StopPtr;
     //На момент добавления информации о расстоянии до остановки, некоторых остановок может не быть
-    //У меня не реализован подход с "болванками", поэтому надежнее добавлять строки
+    //У меня НЕ реализован подход с "болванками", поэтому надежнее добавлять строки
     //и в дальнейшем брать из остановок названия и считать длину маршрута.
     std::unordered_map<std::pair<std::string, std::string>, double, PairHasher> distances_;
 
     double GetDistance(const std::string& from, const std::string& to) const;
+private:
 };

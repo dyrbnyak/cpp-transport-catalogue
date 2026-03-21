@@ -1,50 +1,30 @@
+#include "json.h"
+#include "json_reader.h"
+#include "transport_catalogue.h"
+#include "request_handler.h"
+#include "map_renderer.h"
 #include <iostream>
-#include <string>
-#include <chrono>
+#include <algorithm>
 
-#include "input_reader.h"
-#include "stat_reader.h"
+using namespace std::literals;
 
-class LogDuration {
-public:
-    // заменим имя типа std::chrono::steady_clock
-    // с помощью using для удобства
-    using Clock = std::chrono::steady_clock;
+int main() {
+    json::Document doc = json::Load(std::cin);
 
-    LogDuration(std::string name_op): name_op_{name_op} {
-    }
-
-    ~LogDuration() {
-        using namespace std::chrono;
-        using namespace std::literals;
-
-        const auto end_time = Clock::now();
-        const auto dur = end_time - start_time_;
-        std::cerr << name_op_ << ": "s << duration_cast<milliseconds>(dur).count() << " ms"s << std::endl;
-    }
-
-private:
-    const Clock::time_point start_time_ = Clock::now();
-    std::string name_op_;
-};
-
-using namespace std;
-
-int main(){
     TransportCatalogue catalogue;
+    RequestHandler request_handler(catalogue);
+    json_reader::LoadBaseRequests(doc, catalogue, request_handler);
 
-    int base_request_count;
-    cin >> base_request_count >> ws;
+    render::RenderSettings render_settings = json_reader::LoadRenderSettings(doc);
+    render::MapRenderer renderer(render_settings);
 
-    {
 
-        InputReader reader;
-        {
-            LogDuration guard("Test_New_logic");
-            reader.ReadRequests(cin, base_request_count);
-            reader.ApplyCommands(catalogue);
-        }
-    }
+    RoutePtr route_ptr = request_handler.GetAllBusAndStop();
 
-    detail::ProcessStatRequests(cin, catalogue, cout);
-}
+    std::sort(route_ptr.bus_ptr.begin(), route_ptr.bus_ptr.end(),
+              [](BusPtr a, BusPtr b) {
+                  return (a->name) < (b->name);
+              });
+
+    json::Print(json_reader::ProcessStatRequests(doc, request_handler), std::cout);
+ }
