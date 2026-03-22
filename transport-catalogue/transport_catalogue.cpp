@@ -132,8 +132,8 @@ std::vector<StopPtr> TransportCatalogue::GetStop() const{
     return result;
 }
 
-std::vector<BusPtr> TransportCatalogue::GetBus() const{
-    std::vector<BusPtr> result;
+Buses TransportCatalogue::GetBus() const{
+    Buses result;
     result.reserve(bus_.size());
 
     for(const auto& bus : bus_){

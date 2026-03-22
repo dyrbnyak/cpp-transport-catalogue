@@ -2,6 +2,7 @@
 #include "geo.h"
 #include <vector>
 #include <cstdint>
+#include <set>
 
 /*
  * В этом файле вы можете разместить классы/структуры, которые являются частью предметной области (domain)
@@ -16,12 +17,16 @@
  */
 struct Stop;
 struct Bus;
+struct CompareStopByName;
 
-
-using Stops = std::vector<Stop*>;
 using StopPtr = Stop*;
-
 using BusPtr = Bus*;
+
+using Stops = std::vector<StopPtr>;
+using Buses = std::vector<BusPtr>;
+
+using UniqueStops = std::set<StopPtr, CompareStopByName>;
+
 
 struct RouteNames{
     std::vector<std::string> bus_names;
@@ -57,3 +62,33 @@ struct BusStat{
 };
 
 
+//Функтор, чтоб задать правло сортировки при добавлении элемента в set
+struct CompareStopByName {
+    bool operator()(const StopPtr lhs, const StopPtr rhs) const {
+        return lhs->name < rhs->name;
+    }
+};
+
+inline UniqueStops GetUiqueStops(const Buses& buses){
+    UniqueStops result;
+
+    for (const auto* bus : buses) {
+        for (auto* stop : bus->stops) {
+            result.insert((stop));
+        }
+    }
+
+    return std::move(result);
+}
+
+inline std::vector<Coordinates> GetCoordinatesFromBuses(const Buses& buses) {
+    std::vector<Coordinates> result;
+
+    for (const auto& bus : buses){
+        for (const auto& stop : bus->stops){
+            result.push_back(stop->coordinates);
+        }
+    }
+
+    return std::move(result);
+}

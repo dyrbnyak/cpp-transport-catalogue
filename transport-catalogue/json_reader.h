@@ -8,6 +8,16 @@
  * а также код обработки запросов к базе и формирование массива ответов в формате JSON
  */
 
+
+/*
+ *
+ * В моей архитектуре json_reader не может быть классом, так как у него нет объектов композиции
+ * json_reder - "библиотека" для взаимодествяи с json в рамках проекта "Транспортный Справочник"
+ *
+ * В свою очередь request_handler должен быть классом, так как имеется агрегацию map_rander и data_bases,
+ * Является фундаментов для реализации патерна проектирования "Фасад"
+ */
+
 namespace json_reader {
 
 void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, RequestHandler& request_handler);

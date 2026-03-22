@@ -13,30 +13,51 @@ svg::Color MapRenderer::GetColor(size_t idx) const {
 }
 
 void MapRenderer::RenderMap(std::ostream& out,
-                            const std::vector<BusPtr>& buses,
-                            [[maybe_unused]] const std::vector<StopPtr>& stops) const {
+                            const Buses& buses,
+                            [[maybe_unused]] const Stops& stops) const {
 
-    std::vector<Coordinates> сoordinates;
+    svg::Document doc;
 
-    //Собираем координаты всем остановок
-    for (const auto& bus : buses){
-        for (const auto& stop : bus->stops){
-            сoordinates.push_back(stop->coordinates);
-        }
-    }
+    //Собираем координаты по всем остановок
+    std::vector<Coordinates> сoordinates = GetCoordinatesFromBuses(buses);
+
+    //Сбор уникальныйх остановок из всех маршрутов
+    UniqueStops unique_stops = GetUiqueStops(buses);
+
 
     //Проецируем с сферы на плоскость координаты
     SphereProjector proj(сoordinates.begin(), сoordinates.end(),
                          settings_.width, settings_.height, settings_.padding);
 
-    svg::Document doc;
-
+    //Отрисовка
     //Первый слой: Отрисовка путей
+    RenderFirstLayer(doc, buses, proj);
+
+
+    //Второй слой: названия маршрутов
+    RenderSecondLayer(doc, buses, proj);
+
+
+    // Слой 3: круги, обозначающие остановки
+    RenderThirdLayer(doc, unique_stops, proj);
+
+
+    //Слой 4: названия остановок
+    RenderFourthLayer(doc, unique_stops, proj);
+
+
+    doc.Render(out);
+}
+
+
+
+void MapRenderer::RenderFirstLayer(svg::Document &doc, const Buses &buses, const SphereProjector &proj) const{
     for (size_t i = 0; i < buses.size(); ++i) {
         RenderRoute(doc, buses[i], proj, i);
     }
+}
 
-    //Второй слой: названия маршрутов
+void MapRenderer::RenderSecondLayer(svg::Document &doc, const Buses &buses, const SphereProjector &proj) const{
     for (size_t i = 0; i < buses.size(); ++i) {
         const auto* bus = buses[i];
 
@@ -68,40 +89,23 @@ void MapRenderer::RenderMap(std::ostream& out,
             }
         }
     }
+}
 
-    // Слой 3: круги, обозначающие остановки
-    //Функтор, чтоб задать правло сортировки при добавлении элемента в set
-    struct CompareStopByName {
-        bool operator()(const StopPtr lhs, const StopPtr rhs) const {
-            return lhs->name < rhs->name;
-        }
-    };
-
-    std::set<StopPtr, CompareStopByName> unique_stops;
-    for (const auto* bus : buses) {
-        for (auto* stop : bus->stops) {
-            unique_stops.insert((stop));
-        }
-    }
-
-
+void MapRenderer::RenderThirdLayer(svg::Document& doc, const UniqueStops& unique_stops, const SphereProjector& proj) const{
+    //Отрисовка остановок, кружков
     for (const auto* stop : unique_stops) {
         RenderStop(doc, stop, proj);
     }
+}
 
-    //Слой 4: названия остановок
+void MapRenderer::RenderFourthLayer(svg::Document &doc, const UniqueStops &unique_stops, const SphereProjector &proj) const{
+    //Отрисовка названия
     for (const auto* stop : unique_stops) {
         RenderStopLabel(doc, stop, proj);
     }
-
-    doc.Render(out);
 }
 
-std::string MapRenderer::RenderMapToString(const std::vector<BusPtr> &buses, const std::vector<StopPtr> &stops) const{
-    std::ostringstream out_string;
-    RenderMap(out_string, buses, stops);
-    return out_string.str();
-}
+
 
 void MapRenderer::RenderRoute(svg::Document& doc, const Bus* bus, const SphereProjector& proj, size_t idx) const {
     if (bus->stops.empty()){
@@ -211,6 +215,12 @@ void MapRenderer::RenderStopLabel(svg::Document& doc,
         .SetFillColor("black");
 
     doc.Add(std::move(txt));
+}
+
+std::string MapRenderer::RenderMapToString(const Buses &buses, const std::vector<StopPtr> &stops) const{
+    std::ostringstream out_string;
+    RenderMap(out_string, buses, stops);
+    return out_string.str();
 }
 
 }  // namespace render

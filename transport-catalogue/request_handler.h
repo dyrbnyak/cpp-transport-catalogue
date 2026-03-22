@@ -29,6 +29,8 @@ public:
     RequestHandler(const TransportCatalogue& db, const render::RenderSettings& settings)
         : db_(db), render_settings_(settings) {}
 
+
+
     // Возвращает информацию о маршруте (запрос Bus)
     std::optional<BusStat> GetBusStat(const std::string_view& bus_name) const;
 

@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
-#include <set>
 #include <optional>
 
 #include "domain.h"

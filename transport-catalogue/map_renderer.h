@@ -107,25 +107,55 @@ public:
     explicit MapRenderer(const RenderSettings& s)
         : settings_(s) {}
 
-    void RenderMap(std::ostream& out, const std::vector<BusPtr>& buses, [[maybe_unused]] const std::vector<StopPtr>& stops) const;
+    void RenderMap(std::ostream& out, const Buses& buses, [[maybe_unused]] const std::vector<StopPtr>& stops) const;
 
     //Дополнительный метод для возврата вывода строкой
-    std::string RenderMapToString(const std::vector<BusPtr>& buses,
+    std::string RenderMapToString(const Buses& buses,
                                   const std::vector<StopPtr>& stops) const;
 
 private:
-    //Отрисовка путей
+    /*
+     *
+     * Методы отрисовки слоев
+     *
+     */
+    void RenderFirstLayer(svg::Document& doc,
+                          const Buses& buses,
+                          const SphereProjector& proj) const;
+
+    void RenderSecondLayer(svg::Document& doc,
+                           const Buses& buses,
+                           const SphereProjector& proj) const;
+
+    void RenderThirdLayer(svg::Document& doc,
+                           const UniqueStops& unique_stops,
+                           const SphereProjector& proj) const;
+
+    void RenderFourthLayer(svg::Document& doc,
+                           const UniqueStops& unique_stops,
+                           const SphereProjector& proj) const;
+
+
+
+
+
+    /*
+     *
+     * Методы отрисовки частей
+     *
+     */
+    //Отрисовка пути
     void RenderRoute(svg::Document& doc, const Bus* bus,const SphereProjector& proj, size_t idx) const;
 
-    //Отрисовка названий маршрутов
+    //Отрисовка названия маршрута
     void RenderBusLabel(svg::Document& doc, const Bus* bus,
                         const Stop* stop,
                         const SphereProjector& proj, size_t idx) const;
 
-    //Отрисовка остановок, кружочков
+    //Отрисовка остановки, кружочка
     void RenderStop(svg::Document& doc, const Stop* stop, const SphereProjector& proj) const;
 
-    //Отрисовка названий остановок
+    //Отрисовка названия остановки
     void RenderStopLabel(svg::Document& doc, const Stop* stop,  const SphereProjector& proj) const;
 
     svg::Color GetColor(size_t idx) const;
