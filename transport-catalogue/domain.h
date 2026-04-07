@@ -78,7 +78,7 @@ inline UniqueStops GetUiqueStops(const Buses& buses){
         }
     }
 
-    return std::move(result);
+   return result;
 }
 
 inline std::vector<Coordinates> GetCoordinatesFromBuses(const Buses& buses) {
@@ -90,5 +90,5 @@ inline std::vector<Coordinates> GetCoordinatesFromBuses(const Buses& buses) {
         }
     }
 
-    return std::move(result);
+   return result;
 }

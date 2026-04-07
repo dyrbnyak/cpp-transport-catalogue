@@ -1,4 +1,4 @@
-#include "json.h"
+#include "json_builder.h"
 #include "json_reader.h"
 #include "transport_catalogue.h"
 #include "request_handler.h"
@@ -28,3 +28,13 @@ int main() {
 
     json::Print(json_reader::ProcessStatRequests(doc, request_handler), std::cout);
  }
+
+ /*
+  *
+  *
+  * Я не совсем понял, как в мою реализацию надо внедрить билдер.
+  * Прошу не злиться за это)
+  *
+  *
+  *
+  * /

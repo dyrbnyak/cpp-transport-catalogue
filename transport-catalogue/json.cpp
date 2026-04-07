@@ -163,10 +163,9 @@ Node LoadNumber(std::istream& input) {
     // Парсим целую часть числа
     if (input.peek() == '0') {
         read_char();
-    } else if (std::isdigit(input.peek())) {
-        read_digits();
+        // После 0 в JSON не могут идти другие цифры
     } else {
-        throw ParsingError("A digit is expected"s);
+        read_digits();
     }
 
     bool is_int = true;
@@ -243,7 +242,6 @@ Node LoadNode(std::istream& input) {
         return LoadNumber(input);
     }
 }
-}  // namespace
 
 struct PrintContext {
     std::ostream& out;
@@ -364,7 +362,7 @@ void PrintNode(const Node& node, const PrintContext& ctx) {
         node.GetValue());
 }
 
-
+}  // namespace
 
 Document Load(std::istream& input) {
     return Document{LoadNode(input)};

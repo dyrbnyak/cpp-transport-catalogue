@@ -1,4 +1,5 @@
 #include "json_reader.h"
+#include "json_builder.h"
 #include "json.h"
 #include "map_renderer.h"
 
@@ -33,7 +34,7 @@ void SetRoadDistances(const json::Dict& stop_dict, TransportCatalogue& catalogue
     const std::string& stop_name = stop_dict.at("name").AsString();
 
     if (auto stop_ptr = catalogue.FindStop(stop_name)){
-        const auto& road_distances = stop_dict.at("road_distances").AsMap();
+        const auto& road_distances = stop_dict.at("road_distances").AsDict();
         for (const auto& [to, distance] : road_distances) {
 
             if (auto to_ptr = catalogue.FindStop(to); to_ptr) {
@@ -66,7 +67,7 @@ void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, 
      * В методе добавления маршрута заложена проверка, существует ли остановка,
      * переданная в параметрах, для этого должны быть заранее считаны все остановки.
     */
-    const auto& root = doc.GetRoot().AsMap();
+    const auto& root = doc.GetRoot().AsDict();
     const auto& base_requests = root.at("base_requests").AsArray();
 
     //Добавление настроек рендера в requset handler
@@ -75,7 +76,7 @@ void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, 
 
     //Добавление остановок
     for (const auto& node : base_requests) {
-        const auto& dict = node.AsMap();
+        const auto& dict = node.AsDict();
         if (dict.at("type").AsString() == "Stop"){
             LoadStop(dict, catalogue);
         }
@@ -83,7 +84,7 @@ void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, 
 
     //Добавление расстояний
     for (const auto& node : base_requests) {
-        const auto& dict = node.AsMap();
+        const auto& dict = node.AsDict();
         if (dict.at("type").AsString() == "Stop"){
             SetRoadDistances(dict, catalogue);
         }
@@ -91,7 +92,7 @@ void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, 
 
     //Добавление маршрутов
     for (const auto& node : base_requests) {
-        const auto& dict = node.AsMap();
+        const auto& dict = node.AsDict();
         if (dict.at("type").AsString() == "Bus"){
             LoadBus(dict, catalogue);
         }
@@ -168,14 +169,14 @@ json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& ha
 }
 
 json::Document ProcessStatRequests(const json::Document& doc, const RequestHandler& handler) {
-    const auto& root = doc.GetRoot().AsMap();
+    const auto& root = doc.GetRoot().AsDict();
     const auto& stat_requests = root.at("stat_requests").AsArray();
 
     json::Array responses;
     responses.reserve(stat_requests.size());
 
     for (const auto& request_node : stat_requests) {
-        const auto& request = request_node.AsMap();
+        const auto& request = request_node.AsDict();
         const std::string& type = request.at("type").AsString();
 
         if (type == "Bus") {
@@ -196,7 +197,7 @@ json::Document ProcessStatRequests(const json::Document& doc, const RequestHandl
 
 RouteNames ExtractRouteNames(const json::Document& doc) {
     RouteNames route_names;
-    const auto& root = doc.GetRoot().AsMap();
+    const auto& root = doc.GetRoot().AsDict();
 
 
     auto it = root.find("base_requests");
@@ -205,7 +206,7 @@ RouteNames ExtractRouteNames(const json::Document& doc) {
     }
 
     for (const auto& req : it->second.AsArray()) {
-        const auto& m = req.AsMap();
+        const auto& m = req.AsDict();
         const std::string& type = m.at("type").AsString();
         const std::string& name = m.at("name").AsString();
 
@@ -222,14 +223,14 @@ RouteNames ExtractRouteNames(const json::Document& doc) {
 
 render::RenderSettings LoadRenderSettings(const json::Document& doc) {
     render::RenderSettings settings;
-    const auto& root = doc.GetRoot().AsMap();
+    const auto& root = doc.GetRoot().AsDict();
 
     auto it = root.find("render_settings");
-    if (it == root.end() || !it->second.IsMap()){
+    if (it == root.end() || !it->second.IsDict()){
         return settings;
     }
 
-    const auto& rs = it->second.AsMap();
+    const auto& rs = it->second.AsDict();
 
     //Инициализация параметров
     if (auto w = rs.find("width"); w != rs.end() && w->second.IsDouble()){

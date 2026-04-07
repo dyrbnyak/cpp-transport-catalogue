@@ -137,26 +137,33 @@ private:
 
 
 
-
-
     /*
      *
-     * Методы отрисовки частей
+     * Методы отрисовки объектов
      *
      */
     //Отрисовка пути
-    void RenderRoute(svg::Document& doc, const Bus* bus,const SphereProjector& proj, size_t idx) const;
+    void RenderRoute(svg::Document& doc,
+                     const Bus* bus,
+                     const SphereProjector& proj,
+                     size_t idx) const;
 
     //Отрисовка названия маршрута
-    void RenderBusLabel(svg::Document& doc, const Bus* bus,
+    void RenderBusLabel(svg::Document& doc,
+                        const Bus* bus,
                         const Stop* stop,
-                        const SphereProjector& proj, size_t idx) const;
+                        const SphereProjector& proj,
+                        size_t idx) const;
 
     //Отрисовка остановки, кружочка
-    void RenderStop(svg::Document& doc, const Stop* stop, const SphereProjector& proj) const;
+    void RenderStop(svg::Document& doc,
+                    const Stop* stop,
+                    const SphereProjector& proj) const;
 
     //Отрисовка названия остановки
-    void RenderStopLabel(svg::Document& doc, const Stop* stop,  const SphereProjector& proj) const;
+    void RenderStopLabel(svg::Document& doc,
+                         const Stop* stop,
+                         const SphereProjector& proj) const;
 
     svg::Color GetColor(size_t idx) const;
 
