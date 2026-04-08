@@ -100,36 +100,71 @@ void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, 
 }
 
 json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler) {
-    json::Dict response;
+    json::Builder response;
+
     int request_id = request.at("id").AsInt();
-    response["request_id"] = request_id;
+    response.StartDict().Key("request_id").Value(request_id);
 
     const std::string& bus_name = request.at("name").AsString();
     auto stat_opt = handler.GetBusStat(bus_name);
 
     if (!stat_opt.has_value()) {
-        response["error_message"] = std::string("not found");
-        return json::Node(std::move(response));
+        response.Key("error_message").Value("not found"s).EndDict();
+
+        return json::Node(std::move(response.Build()));
     }
 
-    response["stop_count"] = stat_opt->stops_on_rote;
-    response["unique_stop_count"] = stat_opt->unique_stops;
-    response["route_length"] = stat_opt->route_length;
-    response["curvature"] = stat_opt->curvature;
+    response.Key("stop_count").Value(stat_opt->stops_on_rote)
+            .Key("unique_stop_count").Value(stat_opt->unique_stops)
+            .Key("route_length").Value(stat_opt->route_length)
+            .Key("curvature").Value(stat_opt->curvature)
+            .EndDict();
 
-    return json::Node(std::move(response));
+    return json::Node(std::move(response.Build()));
 }
 
+// json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler) {
+//     //json::Dict response;
+
+//     json::Builder response;
+
+//     response.StartDict();
+
+
+
+//     int request_id = request.at("id").AsInt();
+//     response["request_id"] = request_id;
+
+//     const std::string& bus_name = request.at("name").AsString();
+//     auto stat_opt = handler.GetBusStat(bus_name);
+
+//     if (!stat_opt.has_value()) {
+//         response["error_message"] = std::string("not found");
+//         return json::Node(std::move(response));
+//     }
+
+//     response["stop_count"] = stat_opt->stops_on_rote;
+//     response["unique_stop_count"] = stat_opt->unique_stops;
+//     response["route_length"] = stat_opt->route_length;
+//     response["curvature"] = stat_opt->curvature;
+
+//     return json::Node(std::move(response));
+// }
+
+
 json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& handler) {
-    json::Dict response;
-    response["request_id"] = request.at("id").AsInt();
+    json::Builder response;
+
+    int request_id = request.at("id").AsInt();
+    response.StartDict().Key("request_id").Value(request_id);
 
     std::string_view stop_name = request.at("name").AsString();
     auto stop_ptr = handler.GetBusesByStop(stop_name);
 
     if (stop_ptr == nullptr) {
-        response["error_message"] = std::string("not found");
-        return json::Node(std::move(response));
+        response.Key("error_message").Value("not found"s).EndDict();
+
+        return json::Node(std::move(response.Build()));
     }
 
     std::set<std::string> bus_names;
@@ -143,14 +178,44 @@ json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& h
         buses_array.push_back(name);
     }
 
-    response["buses"] = json::Node(std::move(buses_array));
-    return json::Node(std::move(response));
+    response.Key("buses"s).Value(std::move(buses_array)).EndDict();
+
+    return json::Node(std::move(response.Build()));
 }
 
-json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& handler){
-    json::Dict response;
+// json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& handler) {
+//     json::Dict response;
+//     response["request_id"] = request.at("id").AsInt();
 
-    response["request_id"] = request.at("id").AsInt();
+//     std::string_view stop_name = request.at("name").AsString();
+//     auto stop_ptr = handler.GetBusesByStop(stop_name);
+
+//     if (stop_ptr == nullptr) {
+//         response["error_message"] = std::string("not found");
+//         return json::Node(std::move(response));
+//     }
+
+//     std::set<std::string> bus_names;
+//     for (const auto* bus : *stop_ptr) {
+//         bus_names.insert(bus -> name);
+//     }
+
+//     json::Array buses_array;
+//     buses_array.reserve(bus_names.size());
+//     for (const auto& name : bus_names) {
+//         buses_array.push_back(name);
+//     }
+
+//     response["buses"] = json::Node(std::move(buses_array));
+//     return json::Node(std::move(response));
+// }
+
+
+json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& handler){
+    json::Builder response;
+
+    int request_id = request.at("id").AsInt();
+    response.StartDict().Key("request_id").Value(request_id);
 
     render::MapRenderer renderer(handler.GetRenderSettings().value());
 
@@ -163,34 +228,81 @@ json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& ha
     std::string map_svg = renderer.RenderMapToString(route_ptr.bus_ptr,
                                                      route_ptr.stop_ptr);
 
-    response["map"] = map_svg;
+    response.Key("map"s).Value(map_svg).EndDict();
 
-    return json::Node(std::move(response));
+    return json::Node(std::move(response.Build()));
 }
+
+// json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& handler){
+//     json::Dict response;
+
+//     response["request_id"] = request.at("id").AsInt();
+
+//     render::MapRenderer renderer(handler.GetRenderSettings().value());
+
+//     RoutePtr route_ptr = handler.GetAllBusAndStop();
+
+//     std::sort(route_ptr.bus_ptr.begin(), route_ptr.bus_ptr.end(),
+//               [](BusPtr a, BusPtr b) { return a->name < b->name; });
+
+//     // Получаем карту как строку
+//     std::string map_svg = renderer.RenderMapToString(route_ptr.bus_ptr,
+//                                                      route_ptr.stop_ptr);
+
+//     response["map"] = map_svg;
+
+//     return json::Node(std::move(response));
+// }
+
+
+// json::Document ProcessStatRequests(const json::Document& doc, const RequestHandler& handler) {
+//         const auto& root = doc.GetRoot().AsDict();
+//         const auto& stat_requests = root.at("stat_requests").AsArray();
+
+//         json::Array responses;
+
+//         responses.reserve(stat_requests.size());
+
+//     for (const auto& request_node : stat_requests) {
+//         const auto& request = request_node.AsDict();
+//         const std::string& type = request.at("type").AsString();
+
+//         if (type == "Bus") {
+//             responses.emplace_back(ProcessBusRequest(request, handler));
+
+//         } else if (type == "Stop") {
+//             responses.emplace_back(ProcessStopRequest(request, handler));
+
+//         } else if (type == "Map") {
+//             responses.emplace_back(ProcessMapRequest(request, handler));
+//         }
+//     }
+
+//     return json::Document(json::Node(std::move(responses)));
+// }
 
 json::Document ProcessStatRequests(const json::Document& doc, const RequestHandler& handler) {
     const auto& root = doc.GetRoot().AsDict();
     const auto& stat_requests = root.at("stat_requests").AsArray();
 
-    json::Array responses;
-    responses.reserve(stat_requests.size());
+    json::Builder builder;
+    builder.StartArray();  // Начинаем массив ответов
 
     for (const auto& request_node : stat_requests) {
         const auto& request = request_node.AsDict();
         const std::string& type = request.at("type").AsString();
 
         if (type == "Bus") {
-            responses.emplace_back(ProcessBusRequest(request, handler));
-
+            builder.Value(ProcessBusRequest(request, handler).GetValue());
         } else if (type == "Stop") {
-            responses.emplace_back(ProcessStopRequest(request, handler));
-
+            builder.Value(ProcessStopRequest(request, handler).GetValue());
         } else if (type == "Map") {
-            responses.emplace_back(ProcessMapRequest(request, handler));
+            builder.Value(ProcessMapRequest(request, handler).GetValue());
         }
     }
 
-    return json::Document(json::Node(std::move(responses)));
+    builder.EndArray();  // Заканчиваем массив
+    return json::Document(builder.Build());
 }
 
 
