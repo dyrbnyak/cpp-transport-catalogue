@@ -1,6 +1,7 @@
 #pragma once
 
 #include "transport_catalogue.h"
+#include "transport_router.h"
 #include "svg.h"
 #include "map_renderer.h"
 
@@ -23,13 +24,7 @@
 
 class RequestHandler {
 public:
-    RequestHandler(const TransportCatalogue& db)
-        : db_(db), render_settings_(std::nullopt) {}
-
-    RequestHandler(const TransportCatalogue& db, const render::RenderSettings& settings)
-        : db_(db), render_settings_(settings) {}
-
-
+    RequestHandler() = default;
 
     // Возвращает информацию о маршруте (запрос Bus)
     std::optional<BusStat> GetBusStat(const std::string_view& bus_name) const;
@@ -40,14 +35,44 @@ public:
     // Возвращает указатели на все маршруты и остановки
     RoutePtr GetAllBusAndStop() const;
 
-    //Возвращает настройки рендера
-    const std::optional<render::RenderSettings>& GetRenderSettings() const;
 
-    //Установка настроек рендера
-    void SetRenderSetting(const render::RenderSettings& render_settings);
+    void SetTransportCatalogue(const TransportCatalogue& catalogue) {
+        transport_catalogue_ = &catalogue;
+    }
+
+    void SetRouter(const TransportRouter& router) {
+        router_ = &router;
+    }
+
+    void SetRenderer(const render::MapRenderer& renderer) {
+        renderer_ = &renderer;
+    }
+
+    // Get методы с проверками (бросают исключение)
+    const TransportCatalogue& GetTransportCatalogue() const {
+        if (!transport_catalogue_) {
+            throw std::runtime_error("TransportCatalogue not initialized");
+        }
+        return *transport_catalogue_;
+    }
+
+    const TransportRouter& GetRouter() const {
+        if (!router_) {
+            throw std::runtime_error("Router not initialized");
+        }
+        return *router_;
+    }
+
+    const render::MapRenderer& GetRenderer() const {
+        if (!renderer_) {
+            throw std::runtime_error("Renderer not initialized");
+        }
+        return *renderer_;
+    }
 
 private:
-    const TransportCatalogue& db_;
-    std::optional<render::RenderSettings> render_settings_;
+    const TransportCatalogue* transport_catalogue_ = nullptr;
+    const TransportRouter* router_ = nullptr;
+    const render::MapRenderer* renderer_ = nullptr;
 };
 

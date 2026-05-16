@@ -132,6 +132,10 @@ std::vector<StopPtr> TransportCatalogue::GetStop() const{
     return result;
 }
 
+void TransportCatalogue::SetRoutingSettings(RoutingSettings routing_settings){
+    routing_settings_ = routing_settings;
+}
+
 Buses TransportCatalogue::GetBus() const{
     Buses result;
     result.reserve(bus_.size());

@@ -18,10 +18,6 @@ using namespace std::literals;
 
 namespace json_reader {
 
-json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler);
-json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& handler);
-json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& handler);
-
 void LoadStop(const json::Dict& stop_dict, TransportCatalogue& catalogue) {
     std::string name    = stop_dict.at("name").AsString();
     double latitude     = stop_dict.at("latitude").AsDouble();
@@ -61,7 +57,7 @@ void LoadBus(const json::Dict& bus_dict, TransportCatalogue& catalogue) {
     catalogue.AddBus(name, stops, is_roundtrip);
 }
 
-void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, RequestHandler& request_handler) {
+void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue) {
     /*
      * Сначала считываем остановки, дистанции, затем маршруты.
      * В методе добавления маршрута заложена проверка, существует ли остановка,
@@ -70,9 +66,7 @@ void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, 
     const auto& root = doc.GetRoot().AsDict();
     const auto& base_requests = root.at("base_requests").AsArray();
 
-    //Добавление настроек рендера в requset handler
-    render::RenderSettings render_settings = json_reader::LoadRenderSettings(doc);
-    request_handler.SetRenderSetting(render_settings);
+    //Добавление настроек маршрута в транспортный каталог
 
     //Добавление остановок
     for (const auto& node : base_requests) {
@@ -98,59 +92,6 @@ void LoadBaseRequests(const json::Document& doc, TransportCatalogue& catalogue, 
         }
     }
 }
-
-json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler) {
-    json::Builder response;
-
-    int request_id = request.at("id").AsInt();
-    response.StartDict().Key("request_id").Value(request_id);
-
-    const std::string& bus_name = request.at("name").AsString();
-    auto stat_opt = handler.GetBusStat(bus_name);
-
-    if (!stat_opt.has_value()) {
-        response.Key("error_message").Value("not found"s).EndDict();
-
-        return json::Node(std::move(response.Build()));
-    }
-
-    response.Key("stop_count").Value(stat_opt->stops_on_rote)
-            .Key("unique_stop_count").Value(stat_opt->unique_stops)
-            .Key("route_length").Value(stat_opt->route_length)
-            .Key("curvature").Value(stat_opt->curvature)
-            .EndDict();
-
-    return json::Node(std::move(response.Build()));
-}
-
-// json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler) {
-//     //json::Dict response;
-
-//     json::Builder response;
-
-//     response.StartDict();
-
-
-
-//     int request_id = request.at("id").AsInt();
-//     response["request_id"] = request_id;
-
-//     const std::string& bus_name = request.at("name").AsString();
-//     auto stat_opt = handler.GetBusStat(bus_name);
-
-//     if (!stat_opt.has_value()) {
-//         response["error_message"] = std::string("not found");
-//         return json::Node(std::move(response));
-//     }
-
-//     response["stop_count"] = stat_opt->stops_on_rote;
-//     response["unique_stop_count"] = stat_opt->unique_stops;
-//     response["route_length"] = stat_opt->route_length;
-//     response["curvature"] = stat_opt->curvature;
-
-//     return json::Node(std::move(response));
-// }
-
 
 json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& handler) {
     json::Builder response;
@@ -183,32 +124,79 @@ json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& h
     return json::Node(std::move(response.Build()));
 }
 
-// json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& handler) {
-//     json::Dict response;
-//     response["request_id"] = request.at("id").AsInt();
+json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler) {
+    json::Builder response;
 
-//     std::string_view stop_name = request.at("name").AsString();
-//     auto stop_ptr = handler.GetBusesByStop(stop_name);
+    int request_id = request.at("id").AsInt();
+    response.StartDict().Key("request_id").Value(request_id);
 
-//     if (stop_ptr == nullptr) {
-//         response["error_message"] = std::string("not found");
-//         return json::Node(std::move(response));
-//     }
+    const std::string& bus_name = request.at("name").AsString();
+    auto stat_opt = handler.GetBusStat(bus_name);
 
-//     std::set<std::string> bus_names;
-//     for (const auto* bus : *stop_ptr) {
-//         bus_names.insert(bus -> name);
-//     }
+    if (!stat_opt.has_value()) {
+        response.Key("error_message").Value("not found"s).EndDict();
 
-//     json::Array buses_array;
-//     buses_array.reserve(bus_names.size());
-//     for (const auto& name : bus_names) {
-//         buses_array.push_back(name);
-//     }
+        return json::Node(std::move(response.Build()));
+    }
 
-//     response["buses"] = json::Node(std::move(buses_array));
-//     return json::Node(std::move(response));
-// }
+    response.Key("stop_count").Value(stat_opt->stops_on_rote)
+            .Key("unique_stop_count").Value(stat_opt->unique_stops)
+            .Key("route_length").Value(stat_opt->route_length)
+            .Key("curvature").Value(stat_opt->curvature)
+            .EndDict();
+
+    return json::Node(std::move(response.Build()));
+}
+
+
+
+json::Node ProcessRouteRequest(const json::Dict& request, const RequestHandler& handler) {
+    json::Builder response;
+
+    int request_id = request.at("id").AsInt();
+    std::string from = request.at("from").AsString();
+    std::string to = request.at("to").AsString();
+
+    StopPtr from_stop = handler.GetTransportCatalogue().FindStop(from);
+    StopPtr to_stop = handler.GetTransportCatalogue().FindStop(to);
+
+    std::optional<RouteInfo> route_opt;
+    if(from_stop || to_stop){
+        route_opt = handler.GetRouter().BuildRoute(from_stop, to_stop);
+    }
+
+    response.StartDict()
+        .Key("request_id").Value(request_id);
+
+    if (!route_opt.has_value()) {
+        response.Key("error_message").Value("not found");
+    } else {
+        response.Key("total_time").Value(route_opt->total_time)
+        .Key("items").StartArray();
+
+        for (const auto& item : route_opt->items) {
+            response.StartDict()
+                .Key("type").Value(item.type == TypeItem::BUS ? "Bus" : "Wait")
+                .Key("time").Value(item.time);
+
+            if (item.type == TypeItem::WAIT) {
+                response.Key("stop_name").Value(item.stop_name);
+
+            } else if (item.type == TypeItem::BUS) {
+                response.Key("bus").Value(item.bus_name)
+                .Key("span_count").Value(item.span_count);
+            }
+
+            response.EndDict();
+        }
+
+        response.EndArray();
+    }
+
+    response.EndDict();
+    return response.Build();
+}
+
 
 
 json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& handler){
@@ -217,7 +205,7 @@ json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& ha
     int request_id = request.at("id").AsInt();
     response.StartDict().Key("request_id").Value(request_id);
 
-    render::MapRenderer renderer(handler.GetRenderSettings().value());
+    const render::MapRenderer& renderer = handler.GetRenderer();
 
     RoutePtr route_ptr = handler.GetAllBusAndStop();
 
@@ -233,53 +221,7 @@ json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& ha
     return json::Node(std::move(response.Build()));
 }
 
-// json::Node ProcessMapRequest(const json::Dict& request, const RequestHandler& handler){
-//     json::Dict response;
 
-//     response["request_id"] = request.at("id").AsInt();
-
-//     render::MapRenderer renderer(handler.GetRenderSettings().value());
-
-//     RoutePtr route_ptr = handler.GetAllBusAndStop();
-
-//     std::sort(route_ptr.bus_ptr.begin(), route_ptr.bus_ptr.end(),
-//               [](BusPtr a, BusPtr b) { return a->name < b->name; });
-
-//     // Получаем карту как строку
-//     std::string map_svg = renderer.RenderMapToString(route_ptr.bus_ptr,
-//                                                      route_ptr.stop_ptr);
-
-//     response["map"] = map_svg;
-
-//     return json::Node(std::move(response));
-// }
-
-
-// json::Document ProcessStatRequests(const json::Document& doc, const RequestHandler& handler) {
-//         const auto& root = doc.GetRoot().AsDict();
-//         const auto& stat_requests = root.at("stat_requests").AsArray();
-
-//         json::Array responses;
-
-//         responses.reserve(stat_requests.size());
-
-//     for (const auto& request_node : stat_requests) {
-//         const auto& request = request_node.AsDict();
-//         const std::string& type = request.at("type").AsString();
-
-//         if (type == "Bus") {
-//             responses.emplace_back(ProcessBusRequest(request, handler));
-
-//         } else if (type == "Stop") {
-//             responses.emplace_back(ProcessStopRequest(request, handler));
-
-//         } else if (type == "Map") {
-//             responses.emplace_back(ProcessMapRequest(request, handler));
-//         }
-//     }
-
-//     return json::Document(json::Node(std::move(responses)));
-// }
 
 json::Document ProcessStatRequests(const json::Document& doc, const RequestHandler& handler) {
     const auto& root = doc.GetRoot().AsDict();
@@ -298,6 +240,8 @@ json::Document ProcessStatRequests(const json::Document& doc, const RequestHandl
             builder.Value(ProcessStopRequest(request, handler).GetValue());
         } else if (type == "Map") {
             builder.Value(ProcessMapRequest(request, handler).GetValue());
+        } else if (type == "Route") {
+            builder.Value(ProcessRouteRequest(request, handler).GetValue());
         }
     }
 
@@ -462,6 +406,33 @@ render::RenderSettings LoadRenderSettings(const json::Document& doc) {
                 }
             }
         }
+    }
+
+    return settings;
+}
+
+RoutingSettings LoadRoutingSettings(const json::Document &doc){
+    RoutingSettings settings;
+    const auto& root = doc.GetRoot().AsDict();
+
+    //Отбор конкретной секции
+    auto it = root.find("routing_settings");
+    if (it == root.end() || !it->second.IsDict()){
+        return settings;
+    }
+
+    // rsd - routing_settings_dict
+    const auto& rsd = it->second.AsDict();
+
+    //Инициализация параметров
+    if (auto bus_wait_time = rsd.find("bus_wait_time");
+        bus_wait_time != rsd.end() && bus_wait_time->second.IsDouble()){
+        settings.bus_wait_time = bus_wait_time->second.AsDouble();
+    }
+
+    if (auto bus_velocity = rsd.find("bus_velocity");
+        bus_velocity != rsd.end() && bus_velocity->second.IsDouble()){
+        settings.bus_velocity = bus_velocity->second.AsDouble();
     }
 
     return settings;

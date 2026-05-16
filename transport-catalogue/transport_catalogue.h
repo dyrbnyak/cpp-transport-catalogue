@@ -41,8 +41,10 @@ public:
     std::vector<StopPtr> GetStop() const;
     std::vector<BusPtr> GetBus() const;
 
+    void SetRoutingSettings(RoutingSettings routing_settings);
 
-
+    double GetDistance(const std::string& from, const std::string& to) const;
+private:
     std::deque<Stop> stops_;
     std::unordered_map<std::string_view, StopPtr> index_stops_;
 
@@ -52,6 +54,10 @@ public:
     //Храним указатели на маршруты, которые проходят через остановку. {Остановка, указатель{множество уникальных маршрутов}}
     std::unordered_map<std::string_view, std::unordered_set<BusPtr>> stops_on_route_;
 
+
+    // Храним значения настроек маршрута: скорость движения автобусов и время ожидания
+    RoutingSettings routing_settings_;
+
     //Здесь хранится значение в формате <остановка откуда, остановка куда> = расстояние
 
     //Почему используем pair<std::string, std::string>, а не StopPtr;
@@ -59,7 +65,4 @@ public:
     //У меня НЕ реализован подход с "болванками", поэтому надежнее добавлять строки
     //и в дальнейшем брать из остановок названия и считать длину маршрута.
     std::unordered_map<std::pair<std::string, std::string>, double, PairHasher> distances_;
-
-    double GetDistance(const std::string& from, const std::string& to) const;
-private:
 };

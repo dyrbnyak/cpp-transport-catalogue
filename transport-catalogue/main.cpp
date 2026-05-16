@@ -11,12 +11,18 @@ using namespace std::literals;
 int main() {
     json::Document doc = json::Load(std::cin);
 
+    RequestHandler request_handler;
     TransportCatalogue catalogue;
-    RequestHandler request_handler(catalogue);
-    json_reader::LoadBaseRequests(doc, catalogue, request_handler);
+    render::MapRenderer renderer(json_reader::LoadRenderSettings(doc));
 
-    render::RenderSettings render_settings = json_reader::LoadRenderSettings(doc);
-    render::MapRenderer renderer(render_settings);
+    json_reader::LoadBaseRequests(doc, catalogue);
+
+    //Router должен быть создан после заполнения в catalogue
+    TransportRouter router(catalogue, json_reader::LoadRoutingSettings(doc));
+
+    request_handler.SetRouter(router);
+    request_handler.SetTransportCatalogue(catalogue);
+    request_handler.SetRenderer(renderer);
 
 
     RoutePtr route_ptr = request_handler.GetAllBusAndStop();
@@ -26,15 +32,7 @@ int main() {
                   return (a->name) < (b->name);
               });
 
+
     json::Print(json_reader::ProcessStatRequests(doc, request_handler), std::cout);
  }
 
- /*
-  *
-  *
-  * Я не совсем понял, как в мою реализацию надо внедрить билдер.
-  * Прошу не злиться за это)
-  *
-  *
-  *
-  * /

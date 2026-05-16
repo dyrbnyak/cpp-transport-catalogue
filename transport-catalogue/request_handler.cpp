@@ -9,7 +9,8 @@
  */
 
 std::optional<BusStat> RequestHandler::GetBusStat(const std::string_view &bus_name) const{
-    const auto *b = db_.FindBus(bus_name);
+    const auto *b = GetTransportCatalogue().FindBus(bus_name);
+
     if (!b) {
         return std::nullopt;
     }
@@ -24,25 +25,15 @@ std::optional<BusStat> RequestHandler::GetBusStat(const std::string_view &bus_na
 }
 
 const std::unordered_set<BusPtr>* RequestHandler::GetBusesByStop(const std::string_view &stop_name) const{
-    const StopPtr stop = db_.FindStop(stop_name);
+    const StopPtr stop = GetTransportCatalogue().FindStop(stop_name);
 
     if(!stop){
         return nullptr;
     }
 
-    return &db_.GetBusByStop(stop);
+    return &GetTransportCatalogue().GetBusByStop(stop);
 }
 
 RoutePtr RequestHandler::GetAllBusAndStop() const{
-    return RoutePtr{db_.GetBus(), db_.GetStop()};
+    return RoutePtr{GetTransportCatalogue().GetBus(), GetTransportCatalogue().GetStop()};
 }
-
-const std::optional<render::RenderSettings> &RequestHandler::GetRenderSettings() const{
-    return render_settings_;
-}
-
-
-void RequestHandler::SetRenderSetting(const render::RenderSettings& render_settings){
-    render_settings_ = render_settings;
-}
-
